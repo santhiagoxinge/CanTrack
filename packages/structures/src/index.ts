@@ -390,3 +390,196 @@ export class CircularList<T> {
     return nextNode.value;
   }
 }
+
+interface AvlNode<K extends number | string, V> {
+  key: K;
+  value: V;
+  left: AvlNode<K, V> | null;
+  right: AvlNode<K, V> | null;
+  height: number;
+}
+
+function avlNodeHeight<K extends number | string, V>(node: AvlNode<K, V> | null): number {
+  return node === null ? 0 : node.height;
+}
+
+function avlUpdateHeight<K extends number | string, V>(node: AvlNode<K, V>): void {
+  node.height = 1 + Math.max(avlNodeHeight(node.left), avlNodeHeight(node.right));
+}
+
+function avlBalanceFactor<K extends number | string, V>(node: AvlNode<K, V>): number {
+  return avlNodeHeight(node.left) - avlNodeHeight(node.right);
+}
+
+function avlRotateRight<K extends number | string, V>(node: AvlNode<K, V>): AvlNode<K, V> {
+  const newRoot = node.left!;
+  node.left = newRoot.right;
+  newRoot.right = node;
+  avlUpdateHeight(node);
+  avlUpdateHeight(newRoot);
+  return newRoot;
+}
+
+function avlRotateLeft<K extends number | string, V>(node: AvlNode<K, V>): AvlNode<K, V> {
+  const newRoot = node.right!;
+  node.right = newRoot.left;
+  newRoot.left = node;
+  avlUpdateHeight(node);
+  avlUpdateHeight(newRoot);
+  return newRoot;
+}
+
+function avlRebalance<K extends number | string, V>(node: AvlNode<K, V>): AvlNode<K, V> {
+  avlUpdateHeight(node);
+  const balance = avlBalanceFactor(node);
+
+  if (balance > 1) {
+    if (avlBalanceFactor(node.left!) < 0) {
+      node.left = avlRotateLeft(node.left!);
+    }
+    return avlRotateRight(node);
+  }
+
+  if (balance < -1) {
+    if (avlBalanceFactor(node.right!) > 0) {
+      node.right = avlRotateRight(node.right!);
+    }
+    return avlRotateLeft(node);
+  }
+
+  return node;
+}
+
+/**
+ * AVL tree for finding the earliest scheduled pickup by key (FR-08).
+ *
+ * Big-O:
+ * - insert: O(log n)
+ * - remove: O(log n)
+ * - find: O(log n)
+ * - min: O(log n)
+ * - height: O(1)
+ * - size: O(1)
+ * - inorderKeys: O(n)
+ */
+export class AvlTree<K extends number | string, V> {
+  private root: AvlNode<K, V> | null = null;
+  private count = 0;
+
+  size(): number {
+    return this.count;
+  }
+
+  height(): number {
+    return avlNodeHeight(this.root);
+  }
+
+  insert(key: K, value: V): void {
+    let inserted = false;
+
+    const insertNode = (node: AvlNode<K, V> | null): AvlNode<K, V> => {
+      if (node === null) {
+        inserted = true;
+        return { key, value, left: null, right: null, height: 1 };
+      }
+
+      if (key < node.key) {
+        node.left = insertNode(node.left);
+      } else if (key > node.key) {
+        node.right = insertNode(node.right);
+      } else {
+        node.value = value;
+      }
+
+      return avlRebalance(node);
+    };
+
+    this.root = insertNode(this.root);
+    if (inserted) {
+      this.count += 1;
+    }
+  }
+
+  find(key: K): V | undefined {
+    let current = this.root;
+    while (current !== null) {
+      if (key < current.key) {
+        current = current.left;
+      } else if (key > current.key) {
+        current = current.right;
+      } else {
+        return current.value;
+      }
+    }
+    return undefined;
+  }
+
+  min(): { key: K; value: V } {
+    let current = this.root;
+    if (current === null) {
+      throw new Error("Cannot read the minimum of an empty tree.");
+    }
+
+    while (current.left !== null) {
+      current = current.left;
+    }
+    return { key: current.key, value: current.value };
+  }
+
+  remove(key: K): void {
+    let removed = false;
+
+    const removeNode = (
+      node: AvlNode<K, V> | null,
+      targetKey: K,
+    ): AvlNode<K, V> | null => {
+      if (node === null) {
+        return null;
+      }
+
+      if (targetKey < node.key) {
+        node.left = removeNode(node.left, targetKey);
+      } else if (targetKey > node.key) {
+        node.right = removeNode(node.right, targetKey);
+      } else {
+        removed = true;
+        if (node.left === null) {
+          return node.right;
+        }
+        if (node.right === null) {
+          return node.left;
+        }
+
+        let successor = node.right;
+        while (successor.left !== null) {
+          successor = successor.left;
+        }
+        node.key = successor.key;
+        node.value = successor.value;
+        node.right = removeNode(node.right, successor.key);
+      }
+
+      return avlRebalance(node);
+    };
+
+    this.root = removeNode(this.root, key);
+    if (removed) {
+      this.count -= 1;
+    }
+  }
+
+  inorderKeys(): K[] {
+    const keys: K[] = [];
+    const collect = (node: AvlNode<K, V> | null): void => {
+      if (node === null) {
+        return;
+      }
+      collect(node.left);
+      keys.push(node.key);
+      collect(node.right);
+    };
+
+    collect(this.root);
+    return keys;
+  }
+}

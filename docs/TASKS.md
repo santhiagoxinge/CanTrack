@@ -13,7 +13,7 @@ change is committed. Never check a box by hand — the runner does it.
 | T2 | Singly linked list | FR-06, FR-07 | `tests/structures/singly-list.test.ts` | [x] |
 | T3 | Doubly linked list | FR-12 | `tests/structures/doubly-list.test.ts` | [x] |
 | T4 | Circular list | FR-13 | `tests/structures/circular-list.test.ts` | [x] |
-| T5 | AVL tree (keyed by pickup time) | FR-08 | `tests/structures/avl-tree.test.ts` | [ ] |
+| T5 | AVL tree (keyed by pickup time) | FR-08 | `tests/structures/avl-tree.test.ts` | [x] |
 | T6 | Weighted graph + Dijkstra | FR-09 | `tests/structures/graph-dijkstra.test.ts` | [ ] |
 | T7 | API bootstrap: NestJS app, Supabase Auth guard, signup/login/reset endpoints | FR-01–03 | `tests/api/auth.test.ts` | [ ] |
 | T8 | Dogs CRUD endpoints | FR-04 | `tests/api/dogs.test.ts` | [ ] |
