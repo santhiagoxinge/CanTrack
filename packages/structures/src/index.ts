@@ -112,3 +112,115 @@ export class Queue<T> {
     return this.head.value;
   }
 }
+
+interface SinglyLinkedListNode<T> {
+  value: T;
+  next: SinglyLinkedListNode<T> | null;
+}
+
+/**
+ * Singly linked list for ordered route stops (FR-06 and FR-07).
+ *
+ * Big-O:
+ * - append: O(1)
+ * - insertAt: O(n)
+ * - removeAt: O(n)
+ * - get: O(n)
+ * - size: O(1)
+ * - toArray: O(n)
+ */
+export class SinglyLinkedList<T> {
+  private head: SinglyLinkedListNode<T> | null = null;
+  private tail: SinglyLinkedListNode<T> | null = null;
+  private count = 0;
+
+  size(): number {
+    return this.count;
+  }
+
+  append(value: T): void {
+    const node: SinglyLinkedListNode<T> = { value, next: null };
+    if (this.tail === null) {
+      this.head = node;
+    } else {
+      this.tail.next = node;
+    }
+    this.tail = node;
+    this.count += 1;
+  }
+
+  insertAt(index: number, value: T): void {
+    if (!Number.isInteger(index) || index < 0 || index > this.count) {
+      throw new RangeError("Insertion index is out of range.");
+    }
+
+    const node: SinglyLinkedListNode<T> = { value, next: null };
+    if (index === 0) {
+      node.next = this.head;
+      this.head = node;
+      if (this.tail === null) {
+        this.tail = node;
+      }
+      this.count += 1;
+      return;
+    }
+
+    let previous = this.head;
+    for (let position = 0; position < index - 1; position += 1) {
+      previous = previous!.next;
+    }
+    node.next = previous!.next;
+    previous!.next = node;
+    if (index === this.count) {
+      this.tail = node;
+    }
+    this.count += 1;
+  }
+
+  removeAt(index: number): void {
+    if (!Number.isInteger(index) || index < 0 || index >= this.count) {
+      throw new RangeError("Removal index is out of range.");
+    }
+
+    if (index === 0) {
+      this.head = this.head!.next;
+      this.count -= 1;
+      if (this.head === null) {
+        this.tail = null;
+      }
+      return;
+    }
+
+    let previous = this.head;
+    for (let position = 0; position < index - 1; position += 1) {
+      previous = previous!.next;
+    }
+    previous!.next = previous!.next!.next;
+    if (index === this.count - 1) {
+      this.tail = previous;
+    }
+    this.count -= 1;
+  }
+
+  get(index: number): T {
+    if (!Number.isInteger(index) || index < 0 || index >= this.count) {
+      throw new RangeError("Access index is out of range.");
+    }
+
+    let current = this.head;
+    for (let position = 0; position < index; position += 1) {
+      current = current!.next;
+    }
+    return current!.value;
+  }
+
+  toArray(): T[] {
+    const values: T[] = [];
+    let current = this.head;
+    while (current !== null) {
+      values.push(current.value);
+      current = current.next;
+    }
+    return values;
+  }
+}

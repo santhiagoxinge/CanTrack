@@ -104,8 +104,10 @@ def ensure_repo() -> None:
         git("commit", "-q", "-m", "loop: baseline")
 
 
-def run_tests(test_file: str | None = None) -> tuple[bool, str, set[str]]:
-    cmd = list(VITEST) + ([test_file] if test_file else [])
+def run_tests(test_files: str | list[str] | None = None) -> tuple[bool, str, set[str]]:
+    if isinstance(test_files, str):
+        test_files = [test_files]
+    cmd = list(VITEST) + (test_files or [])
     proc = run(cmd)
     output = (proc.stdout + proc.stderr).strip()
     return proc.returncode == 0, output, set(FAILED_RE.findall(output))
@@ -180,9 +182,32 @@ def next_task(tasks: list[dict[str, str]], only: str | None) -> dict[str, str] |
     return None
 
 
-def run_task(task: dict[str, str], max_iters: int, timeout: int, quota_sleep: int) -> int:
+def regression_check_files(all_tasks: list[dict[str, str]], current_test_file: str) -> list[str]:
+    """Test files that must stay green after this task: every already-done task's test,
+    plus the current one. NOT the whole tests/ tree — later tasks are red on purpose
+    until their own turn, and running the full suite here mistakes that for a
+    regression (this bit us on T2: it fed T3-T6's pre-existing red into the retry
+    prompt as if T2 had broken them)."""
+    files = [
+        t["test_file"]
+        for t in all_tasks
+        if t["done"] and t["test_file"] != "—" and "manual" not in t["test_file"]
+    ]
+    if current_test_file not in files:
+        files.append(current_test_file)
+    return files
+
+
+def run_task(
+    task: dict[str, str],
+    all_tasks: list[dict[str, str]],
+    max_iters: int,
+    timeout: int,
+    quota_sleep: int,
+) -> int:
     test_file = task["test_file"]
     print(f"\n=== {task['id']}: {task['desc']} ({test_file}) ===", flush=True)
+    regression_files = regression_check_files(all_tasks, test_file)
 
     ok, output, failing = run_tests(test_file)
     if ok:
@@ -224,19 +249,19 @@ def run_task(task: dict[str, str], max_iters: int, timeout: int, quota_sleep: in
         print(f"[{task['id']}][{i:02d}] {state:>16}  ({time.time() - t0:.0f}s){note}", flush=True)
 
         if ok:
-            full_ok, full_output, _ = run_tests()
-            if not full_ok:
+            reg_ok, reg_output, _ = run_tests(regression_files)
+            if not reg_ok:
                 print(
-                    f"[{task['id']}] task test green but FULL SUITE broke — not committing. "
-                    "Feeding the failure back to Muse."
+                    f"[{task['id']}] task test green but a previously-done task's test "
+                    "regressed — not committing. Feeding the failure back to the model."
                 )
-                output = full_output
+                output = reg_output
                 fresh = False
                 continue
             mark_done(task["id"])
             git("add", "-A")
             git("commit", "-q", "-m", f"feat({task['id']}): {task['desc']}")
-            print(f"[{task['id']}] GREEN, full suite green, committed.")
+            print(f"[{task['id']}] GREEN, no regression on prior tasks, committed.")
             return 0
 
     print(f"[{task['id']}] EXHAUSTED after {max_iters} iterations, {len(failing)} still failing")
@@ -291,7 +316,7 @@ def main() -> int:
             print("no unchecked automatable tasks left in docs/TASKS.md")
             return 0
 
-        rc = run_task(task, args.max_iters_per_task, args.timeout, args.quota_sleep)
+        rc = run_task(task, tasks, args.max_iters_per_task, args.timeout, args.quota_sleep)
         if rc != 0:
             return rc
         done_count += 1
