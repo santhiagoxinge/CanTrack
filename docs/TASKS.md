@@ -26,6 +26,9 @@ change is committed. Never check a box by hand — the runner does it.
 
 ## Notes for whoever resumes this queue
 
+- Builder model is `opencode/space-bunny-free` (switched 2026-09-24, free/unlimited only
+  through ~30 Sep 2026). If it's gone or rate-limited, swap `MODEL` in `tools/loop.py` back
+  to a Muse Spark id before relaunching.
 - Backend before frontend, per team decision (2026-09-24): T1–T10 first, T11–T13 after.
 - T12/T13 depend on transformers.js running CLIP client-side — if that proves too heavy for the
   free Vercel function or the browser, fall back to the API doing the embedding (extend T10)

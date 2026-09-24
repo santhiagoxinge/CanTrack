@@ -9,9 +9,11 @@ single monolithic spec: docs/TASKS.md lists ordered tasks, each with its own tes
 file, and this driver works through them one at a time, ticking the checkbox and
 committing after each one goes green.
 
-Muse Spark has a limited/contributor-tier quota that can run out mid-task. Per
-team decision (2026-09-24) there is no model fallback: on a quota hit the driver
-sleeps and retries the SAME model, because every line of code has to be Muse's.
+Builder model is opencode/space-bunny-free — a stealth preview model OpenCode is running
+free/unlimited through ~30 Sep 2026 (see docs/TASKS.md note). It replaced Muse Spark on
+2026-09-24 because it has no contributor-tier quota wall. If it goes away or starts
+rate-limiting before the queue is done, swap MODEL back to a Muse Spark id here; the rest
+of the driver (sleep-and-retry on a quota hit, no cascade) still applies either way.
 
 Usage:  python3 tools/loop.py [--max-iters-per-task 8] [--timeout 1800]
         python3 tools/loop.py --only tests/structures/stack-queue.test.ts
@@ -33,7 +35,7 @@ LOOP_DIR = ROOT / ".loop"
 TASKS_FILE = ROOT / "docs" / "TASKS.md"
 VITEST = ["pnpm", "exec", "vitest", "run"]
 
-MODEL = "opencode/muse-spark-1.3-contributor-free"
+MODEL = "opencode/space-bunny-free"
 
 # Everything Muse is not allowed to change. Reverted after every iteration.
 PROTECTED = [
