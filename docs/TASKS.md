@@ -15,7 +15,7 @@ change is committed. Never check a box by hand — the runner does it.
 | T4 | Circular list | FR-13 | `tests/structures/circular-list.test.ts` | [x] |
 | T5 | AVL tree (keyed by pickup time) | FR-08 | `tests/structures/avl-tree.test.ts` | [x] |
 | T6 | Weighted graph + Dijkstra | FR-09 | `tests/structures/graph-dijkstra.test.ts` | [x] |
-| T7 | API bootstrap: NestJS app, Supabase Auth guard, signup/login/reset endpoints | FR-01–03 | `tests/api/auth.test.ts` | [ ] |
+| T7 | API bootstrap: NestJS app, Supabase Auth guard, signup/login/reset endpoints | FR-01–03 | `tests/api/auth.test.ts` | [x] |
 | T8 | Dogs CRUD endpoints | FR-04 | `tests/api/dogs.test.ts` | [ ] |
 | T9 | Routes endpoints (create/reorder/remove stop, next-pickup via AVL, path via Dijkstra) | FR-06–09 | `tests/api/routes.test.ts` | [ ] |
 | T10 | Enroll photos + check-in match/undo endpoints | FR-05, FR-10, FR-11 | `tests/api/checkin.test.ts` | [ ] |
