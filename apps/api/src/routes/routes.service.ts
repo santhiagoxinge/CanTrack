@@ -169,6 +169,10 @@ export class RoutesService {
     return ((data ?? []) as StoredRoute[]).map(toRouteResponse);
   }
 
+  async findOne(walkerId: string, routeId: string): Promise<RouteResponse> {
+    return this.findOwnedRoute(walkerId, routeId);
+  }
+
   private async findOwnedRoute(
     walkerId: string,
     routeId: string,

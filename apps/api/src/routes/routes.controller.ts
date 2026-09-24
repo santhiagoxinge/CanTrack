@@ -98,6 +98,14 @@ export class RoutesController {
     return this.routesService.computePath(dto);
   }
 
+  // Declared AFTER nextPickup: NestJS's RouterExplorer registers routes in class
+  // property-declaration order, and GET ":id" must lose the race against the literal
+  // GET "next-pickup" or Express matches "next-pickup" as :id="next-pickup" — this bit
+  // us in testing (2026-09-24) when findOne was declared earlier in the class body.
+  findOne(request: AuthenticatedRoutesRequest, id: string) {
+    return this.routesService.findOne(request.user.id, id);
+  }
+
   async checkIn(
     request: AuthenticatedRoutesRequest,
     id: string,
@@ -128,6 +136,7 @@ Get("next-pickup")(
   getMethodDescriptor("nextPickup"),
 );
 Get()(RoutesController.prototype, "findAll", getMethodDescriptor("findAll"));
+Get(":id")(RoutesController.prototype, "findOne", getMethodDescriptor("findOne"));
 Post("path")(RoutesController.prototype, "path", getMethodDescriptor("path"));
 Post(":id/checkin")(
   RoutesController.prototype,
@@ -155,6 +164,9 @@ Body()(RoutesController.prototype, "create", 1);
 setParameterTypes("create", [Object, CreateRouteDto]);
 Request()(RoutesController.prototype, "findAll", 0);
 setParameterTypes("findAll", [Object]);
+Request()(RoutesController.prototype, "findOne", 0);
+Param("id")(RoutesController.prototype, "findOne", 1);
+setParameterTypes("findOne", [Object, String]);
 Request()(RoutesController.prototype, "reorder", 0);
 Param("id")(RoutesController.prototype, "reorder", 1);
 Body()(RoutesController.prototype, "reorder", 2);

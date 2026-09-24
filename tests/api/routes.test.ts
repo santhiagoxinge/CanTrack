@@ -143,6 +143,57 @@ describe("Routes endpoints (FR-06, FR-07, FR-08, FR-09)", () => {
     expect(res.status).toBe(400);
   });
 
+  // Regression test (2026-09-24): GET /routes/:id (singular) was missing entirely — only
+  // GET /routes (the list) existed. apps/web's WalkerRouteScreen calls fetchRoute(routeId),
+  // which hits this endpoint, and it 404'd on every real route open even though the route
+  // existed. Neither T9's test (mocks Supabase, never calls this route) nor T13's test
+  // (mocks fetchRoute itself) exercised the real endpoint end to end.
+  it("fetches a single route the walker owns", async () => {
+    authAs(WALKER_A);
+    const created = await request(app.getHttpServer())
+      .post("/routes")
+      .set("Authorization", "Bearer token-a")
+      .send({
+        stops: [{ dogId: "dog-1", pickupTime: "2026-10-01T08:00:00.000Z" }],
+      });
+
+    const res = await request(app.getHttpServer())
+      .get(`/routes/${created.body.id}`)
+      .set("Authorization", "Bearer token-a");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      id: created.body.id,
+      stops: [{ dogId: "dog-1", pickupTime: "2026-10-01T08:00:00.000Z" }],
+    });
+  });
+
+  it("returns 404 fetching a route owned by someone else", async () => {
+    authAs(WALKER_A);
+    const created = await request(app.getHttpServer())
+      .post("/routes")
+      .set("Authorization", "Bearer token-a")
+      .send({
+        stops: [{ dogId: "dog-1", pickupTime: "2026-10-01T08:00:00.000Z" }],
+      });
+
+    authAs(WALKER_B);
+    const res = await request(app.getHttpServer())
+      .get(`/routes/${created.body.id}`)
+      .set("Authorization", "Bearer token-b");
+
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 404 fetching a route id that doesn't exist", async () => {
+    authAs(WALKER_A);
+    const res = await request(app.getHttpServer())
+      .get("/routes/does-not-exist")
+      .set("Authorization", "Bearer token-a");
+
+    expect(res.status).toBe(404);
+  });
+
   it("reorders a route's stops before it starts", async () => {
     authAs(WALKER_A);
     const created = await request(app.getHttpServer())
