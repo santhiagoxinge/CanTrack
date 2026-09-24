@@ -31,8 +31,30 @@ reverted before the next run — don't fight it, just don't do it.
 
 ## `apps/web` conventions (T11+)
 
-- **Clean and functional first — no animation/motion work yet.** Plain forms, plain layout,
-  accessible labels. A polish/animation pass is a later, separate task; don't add it preemptively.
+- **T11-T13 (existing screens) were built plain/functional on purpose — don't restyle them as a
+  side effect of other work.** Visual direction below applies to the app shell (T11.5+) and any
+  later dedicated polish task.
+
+### Visual direction (from T11.5 onward)
+
+Reference: a schedule-management mobile app (Figma community, "Schedule Management Platform
+2019" by Ilia Utkin) — the shape to imitate, not to clone pixel-for-pixel:
+- **Vivid green** as the dominant background/brand color (a saturated grass/emerald green, not a
+  muted sage), with **white rounded cards floating on top** of it for content (dog list, route
+  stops, forms).
+- Generous corner radius (16-24px) on cards and buttons; soft drop shadows under floating cards,
+  not hard borders.
+- Small colorful accent tiles for categories (e.g. dog breed tags, walk status) — orange, purple,
+  teal — used sparingly against the white card backgrounds, not against the green.
+- A schedule/list pattern for anything chronological (routes, stops, walk timeline): each item is
+  its own card with a time or order indicator, name, and a short subtext line.
+- Bottom tab/icon navigation for the primary app sections (dashboard, dogs/routes, profile) rather
+  than a top nav bar — this is a mobile-first PWA.
+- Look at component.gallery, mobbin.com, and freefrontend.com for concrete component patterns
+  (cards, list items, bottom nav, empty states, form inputs) if a specific piece needs a reference;
+  browse the open web for more if those don't have what's needed.
+- **Clean and functional first — no animation/motion work yet** beyond ordinary CSS transitions
+  (hover/press states, a fade/slide on screen change). Nothing requiring an animation library.
 - Export the real Supabase client from `apps/web/src/lib/supabase.ts` as `export const supabase`,
   built from `import.meta.env.VITE_SUPABASE_URL` and `import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY`
   (never the service-role key — that belongs only to `apps/api`). Tests mock this exact module
@@ -69,6 +91,16 @@ reverted before the next run — don't fight it, just don't do it.
   in" confirmation; on `{autoConfirmed: false, candidates}` show a "which dog?" picker over the
   candidates. An "Undo" button calls `undoCheckIn(routeId)` (also add to `api.ts`); show its
   rejection message inline on failure, don't let it throw uncaught.
+- **App shell (`apps/web/src/App.tsx`, `apps/web/index.html`, real `apps/web/src/main.tsx`):**
+  `GET /routes` already exists (`RoutesController.findAll`, returns the caller's routes with
+  `id`/`stops`) — add `fetchRoutes()` to `api.ts` to call it. `App` subscribes to
+  `supabase.auth.getSession()`/`onAuthStateChange`: no session → render the auth screens (a simple
+  toggle between `SignupScreen`/`LoginScreen`/`ResetPasswordScreen`, no routing library needed for
+  this); a session whose `user.user_metadata.role` is `"owner"` → render `OwnerDogsScreen`; role
+  `"walker"` → render a route list (each route as a card showing its id and stop count/first dog
+  name) that, on click, renders `WalkerRouteScreen` for that route's id and a way back to the list.
+  Apply the visual direction above to this shell and to the list/card markup it owns; the existing
+  T11-T13 screens' own internals stay as they are unless a later task explicitly restyles them.
 
 ## `apps/api` conventions the tests rely on
 
