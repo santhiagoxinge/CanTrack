@@ -39,6 +39,10 @@ reverted before the next run — don't fight it, just don't do it.
 - Validate request bodies with `class-validator` DTOs; invalid input returns HTTP 400.
 - Supabase auth errors (e.g. duplicate signup, wrong password) surface as 4xx, not 500 — read
   `error` on the Supabase response and translate it, don't let it throw uncaught.
+- Any endpoint that reads/writes a specific user's row (dogs, routes, etc.) must scope every
+  Supabase query by that user's id (`request.user.id` from `SupabaseAuthGuard`), and must return
+  404 — not 403 — when the row belongs to someone else. Don't leak whether a resource exists to a
+  non-owner.
 
 ## Read first
 
