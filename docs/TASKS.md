@@ -9,7 +9,7 @@ change is committed. Never check a box by hand — the runner does it.
 
 | # | Task | FR | Test file | Done |
 |---|---|---|---|---|
-| T1 | Stack + Queue (`packages/structures`) | FR-11, FR-14 | `tests/structures/stack-queue.test.ts` | [ ] |
+| T1 | Stack + Queue (`packages/structures`) | FR-11, FR-14 | `tests/structures/stack-queue.test.ts` | [x] |
 | T2 | Singly linked list | FR-06, FR-07 | `tests/structures/singly-list.test.ts` | [ ] |
 | T3 | Doubly linked list | FR-12 | `tests/structures/doubly-list.test.ts` | [ ] |
 | T4 | Circular list | FR-13 | `tests/structures/circular-list.test.ts` | [ ] |
