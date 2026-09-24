@@ -60,8 +60,32 @@ type CheckinRoute = {
 
 type RouteDog = {
   id: string;
-  embedding: number[] | null;
+  // Supabase's REST layer serializes a pgvector column as its string
+  // representation ("[0.1,0.2,...]"), not a real array — supabase-js does not
+  // parse it for you. Every real (non-mocked) read of this column comes back
+  // as a string; parseEmbedding below normalizes both shapes.
+  embedding: number[] | string | null;
 };
+
+// pgvector-over-REST comes back as a string like "[0.1,0.2,...]"; tests mock
+// it as a real number[]. Handle both — this was a real bug (2026-09-24): the
+// unparsed string silently produced similarity 0 for every dog (character
+// arithmetic instead of number arithmetic), so "Which dog?" always showed no
+// candidates in production even after Nico enrolled a dog's photos for real.
+function parseEmbedding(embedding: number[] | string | null): number[] | null {
+  if (embedding === null) {
+    return null;
+  }
+  if (Array.isArray(embedding)) {
+    return embedding;
+  }
+  try {
+    const parsed = JSON.parse(embedding) as unknown;
+    return Array.isArray(parsed) ? (parsed as number[]) : null;
+  } catch {
+    return null;
+  }
+}
 
 type CheckinCandidate = {
   dogId: string;
@@ -360,12 +384,13 @@ export class RoutesService {
 
     const candidates: CheckinCandidate[] = [];
     for (const dog of (data ?? []) as RouteDog[]) {
-      if (dog.embedding === null) {
+      const embedding = parseEmbedding(dog.embedding);
+      if (embedding === null) {
         continue;
       }
       candidates.push({
         dogId: dog.id,
-        similarity: cosineSimilarity(dto.embedding, dog.embedding),
+        similarity: cosineSimilarity(dto.embedding, embedding),
       });
     }
     candidates.sort((left, right) => right.similarity - left.similarity);

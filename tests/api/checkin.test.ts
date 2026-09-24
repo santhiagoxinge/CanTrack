@@ -207,6 +207,26 @@ describe("Check-in endpoints (FR-05, FR-10, FR-11)", () => {
     expect(res.body).toMatchObject({ dogId: "dog-1", autoConfirmed: true });
   });
 
+  // Regression test (2026-09-24): Supabase's REST layer serializes a pgvector column as
+  // its string form ("[0.1,0.2,...]"), not a real array. Every other test here stores a
+  // real number[] in the mock, which never exercised this — the real bug only showed up
+  // once Nico enrolled a real dog against the live Supabase project and every check-in
+  // came back with an empty candidates list (string-vs-number comparison silently
+  // produced similarity 0 for every dog).
+  it("auto-confirms when the dog's embedding is a stringified pgvector array", async () => {
+    dogsStore.get("dog-1")!.embedding = JSON.stringify(EMBEDDING_DOG_1) as unknown as number[];
+    dogsStore.get("dog-2")!.embedding = JSON.stringify(EMBEDDING_DOG_2) as unknown as number[];
+
+    authAs(WALKER_A);
+    const res = await request(app.getHttpServer())
+      .post("/routes/route-1/checkin")
+      .set("Authorization", "Bearer token-a")
+      .send({ embedding: EMBEDDING_DOG_1 });
+
+    expect(res.status).toBe(201);
+    expect(res.body).toMatchObject({ dogId: "dog-1", autoConfirmed: true });
+  });
+
   it("asks for manual confirmation when no dog on the route is a confident match", async () => {
     dogsStore.get("dog-1")!.embedding = EMBEDDING_DOG_1;
     dogsStore.get("dog-2")!.embedding = EMBEDDING_DOG_2;
