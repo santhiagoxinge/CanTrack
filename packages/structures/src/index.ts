@@ -583,3 +583,97 @@ export class AvlTree<K extends number | string, V> {
     return keys;
   }
 }
+
+interface WeightedGraphEdge<T> {
+  to: T;
+  weight: number;
+}
+
+/**
+ * Weighted graph for pickup routing (FR-09).
+ *
+ * Backing store: adjacency list keyed by node.
+ *
+ * Big-O:
+ * - addNode: O(1) average
+ * - addEdge: O(1) average
+ * - shortestPath: O(V^2 + E)
+ */
+export class WeightedGraph<T = string> {
+  private adjacency = new Map<T, WeightedGraphEdge<T>[]>();
+
+  addNode(node: T): void {
+    if (!this.adjacency.has(node)) {
+      this.adjacency.set(node, []);
+    }
+  }
+
+  addEdge(from: T, to: T, weight: number): void {
+    if (!Number.isFinite(weight) || weight < 0) {
+      throw new RangeError("Edge weight must be a finite non-negative number.");
+    }
+
+    this.addNode(from);
+    this.addNode(to);
+    this.adjacency.get(from)!.push({ to, weight });
+  }
+
+  shortestPath(start: T, target: T): { distance: number; path: T[] } {
+    if (!this.adjacency.has(start) || !this.adjacency.has(target)) {
+      throw new Error("Cannot find a path between unknown nodes.");
+    }
+
+    const distances = new Map<T, number>();
+    const previous = new Map<T, T>();
+    const unvisited = new Set(this.adjacency.keys());
+    distances.set(start, 0);
+
+    while (unvisited.size > 0) {
+      let current: { node: T; distance: number } | undefined;
+      for (const node of unvisited) {
+        const distance = distances.get(node);
+        if (distance === undefined) {
+          continue;
+        }
+        if (current === undefined || distance < current.distance) {
+          current = { node, distance };
+        }
+      }
+
+      if (current === undefined) {
+        break;
+      }
+
+      unvisited.delete(current.node);
+      if (current.node === target) {
+        const path: T[] = [target];
+        let cursor = target;
+        while (cursor !== start) {
+          const predecessor = previous.get(cursor);
+          if (predecessor === undefined) {
+            throw new Error("Cannot reconstruct the shortest path.");
+          }
+          cursor = predecessor;
+          path.push(cursor);
+        }
+        path.reverse();
+        return { distance: current.distance, path };
+      }
+
+      for (const edge of this.adjacency.get(current.node)!) {
+        if (!unvisited.has(edge.to)) {
+          continue;
+        }
+
+        const candidateDistance = current.distance + edge.weight;
+        const knownDistance = distances.get(edge.to);
+        if (knownDistance === undefined || candidateDistance < knownDistance) {
+          distances.set(edge.to, candidateDistance);
+          previous.set(edge.to, current.node);
+        }
+      }
+    }
+
+    throw new Error("No path exists between the requested nodes.");
+  }
+}
