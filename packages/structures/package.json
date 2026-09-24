@@ -1,0 +1,10 @@
+{
+  "name": "@cantrack/structures",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Hand-written data structures for CanTrack. No dependencies, by requirement.",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {}
+}
