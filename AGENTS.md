@@ -44,6 +44,22 @@ reverted before the next run — don't fight it, just don't do it.
   labeled options, each reachable by `getByLabelText`). Show the Supabase `error.message` inline on
   failure; don't let it throw uncaught. Reset-password shows a "check your email" confirmation on
   success.
+- `apps/web/src/lib/api.ts`: a thin fetch wrapper around the NestJS API (base URL from
+  `import.meta.env.VITE_API_URL`, attach the Supabase session's bearer token). Export named
+  functions per endpoint — `fetchDogs()`, `createDog(dto)`, `enrollEmbedding(dogId, embedding)`,
+  etc. — not a generic client object; tests mock this module by function name.
+- `apps/web/src/lib/clip.ts`: export `getEmbedding(image: Blob): Promise<number[]>`, running CLIP
+  via transformers.js (`@xenova/transformers` or its successor package) entirely client-side, model
+  cached in the browser after first load. This is the ONE module allowed to load a ML model at
+  runtime — nothing else in `apps/web` should. Real model loading is slow, so it is never exercised
+  in the fast unit suite (tests mock this module) — do a manual check in the browser once T12 is
+  built to confirm it actually returns a real embedding, not just that the wiring compiles.
+- `apps/web/src/owner/OwnerDogsScreen.tsx` exports `OwnerDogsScreen`: lists the owner's dogs
+  (`fetchDogs`), a form to add one (`createDog`, requires a name), and per-dog photo enrollment
+  requiring **exactly 3** photos (a labeled multi-file input, `getByLabelText(/reference photos/i)`)
+  — call `getEmbedding` once per photo, average or otherwise combine the 3 vectors into one, and
+  submit it via `enrollEmbedding(dogId, embedding)`. Fewer than 3 photos is a validation error, not
+  a partial submit.
 
 ## `apps/api` conventions the tests rely on
 
