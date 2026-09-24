@@ -5,12 +5,15 @@ import { createClient } from "@supabase/supabase-js";
 import { AuthController } from "./auth/auth.controller.js";
 import { AuthService } from "./auth/auth.service.js";
 import { SupabaseAuthGuard } from "./auth/supabase-auth.guard.js";
+import { DogsController } from "./dogs/dogs.controller.js";
+import { DogsService } from "./dogs/dogs.service.js";
 import { SUPABASE_CLIENT } from "./supabase/supabase.constants.js";
 
 const appModuleMetadata = {
-  controllers: [AuthController],
+  controllers: [AuthController, DogsController],
   providers: [
     AuthService,
+    DogsService,
     SupabaseAuthGuard,
     {
       provide: SUPABASE_CLIENT,
