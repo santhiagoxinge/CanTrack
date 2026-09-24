@@ -60,6 +60,15 @@ reverted before the next run — don't fight it, just don't do it.
   — call `getEmbedding` once per photo, average or otherwise combine the 3 vectors into one, and
   submit it via `enrollEmbedding(dogId, embedding)`. Fewer than 3 photos is a validation error, not
   a partial submit.
+- `apps/web/src/walker/WalkerRouteScreen.tsx` exports `WalkerRouteScreen({ routeId })`: fetches one
+  route (`fetchRoute(routeId)`, add this function to `apps/web/src/lib/api.ts` alongside the
+  existing `fetchDogs`/`createDog`/`enrollEmbedding` — extend that file, don't replace it) and
+  renders its stops in order, each with `data-testid="route-stop"` and a "Check in" button. Check-in
+  is a single labeled photo input (`getByLabelText(/check-in photo/i)`, one file) → `getEmbedding` →
+  `checkIn(routeId, embedding)` (also add to `api.ts`). On `{autoConfirmed: true}` show a "checked
+  in" confirmation; on `{autoConfirmed: false, candidates}` show a "which dog?" picker over the
+  candidates. An "Undo" button calls `undoCheckIn(routeId)` (also add to `api.ts`); show its
+  rejection message inline on failure, don't let it throw uncaught.
 
 ## `apps/api` conventions the tests rely on
 
