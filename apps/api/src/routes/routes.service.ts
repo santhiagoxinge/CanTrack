@@ -33,6 +33,7 @@ type StoredRoute = {
 
 type RouteStop = {
   dogId: string;
+  dogName?: string | null;
   pickupTime: string;
 };
 
@@ -131,6 +132,40 @@ export class RoutesService {
     Object.assign(this, { supabase });
   }
 
+  // A route's own row only ever stores dog_id per stop, never the dog's name — this fetches
+  // every referenced dog in one batch and attaches dogName to each matching stop. Nico saw
+  // this gap firsthand: the walker screen showed a raw dog UUID instead of a name, because
+  // this enrichment didn't exist and no test called the real endpoint end to end.
+  private async enrichStopNames(routes: RouteResponse[]): Promise<RouteResponse[]> {
+    const dogIds = [
+      ...new Set(routes.flatMap((route) => route.stops.map((stop) => stop.dogId))),
+    ];
+    if (dogIds.length === 0) {
+      return routes;
+    }
+
+    const { data, error } = await this.supabase
+      .from("dogs")
+      .select()
+      .in("id", dogIds);
+
+    if (error !== null) {
+      throw new InternalServerErrorException(error.message);
+    }
+
+    const namesById = new Map(
+      ((data ?? []) as { id: string; name: string }[]).map((dog) => [dog.id, dog.name]),
+    );
+
+    return routes.map((route) => ({
+      ...route,
+      stops: route.stops.map((stop) => ({
+        ...stop,
+        dogName: namesById.get(stop.dogId) ?? null,
+      })),
+    }));
+  }
+
   async create(walkerId: string, dto: CreateRouteDto) {
     const stops = new SinglyLinkedList<RouteStop>();
     for (const stop of dto.stops) {
@@ -153,7 +188,8 @@ export class RoutesService {
       throw new InternalServerErrorException("Route creation returned no data.");
     }
 
-    return toRouteResponse(data as StoredRoute);
+    const [enriched] = await this.enrichStopNames([toRouteResponse(data as StoredRoute)]);
+    return enriched;
   }
 
   async findAll(walkerId: string) {
@@ -166,7 +202,7 @@ export class RoutesService {
       throw new InternalServerErrorException(error.message);
     }
 
-    return ((data ?? []) as StoredRoute[]).map(toRouteResponse);
+    return this.enrichStopNames(((data ?? []) as StoredRoute[]).map(toRouteResponse));
   }
 
   async findOne(walkerId: string, routeId: string): Promise<RouteResponse> {

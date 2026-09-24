@@ -22,14 +22,33 @@ type RouteRow = {
   stops: { dog_id: string; pickup_time: string }[];
 };
 
+type DogRow = {
+  id: string;
+  name: string;
+};
+
 const routesStore = new Map<string, RouteRow>();
+const dogsStore = new Map<string, DogRow>();
 let nextId = 1;
 
 function makeSingleResult(result: { data: unknown; error: unknown }) {
   return { single: () => Promise.resolve(result) };
 }
+function makeListResult(result: { data: unknown; error: unknown }) {
+  return { then: (resolve: (v: unknown) => void) => resolve(result) };
+}
 
 const mockFrom = vi.fn((table: string) => {
+  if (table === "dogs") {
+    return {
+      select: () => ({
+        in: (_col: string, ids: string[]) => {
+          const rows = ids.map((id) => dogsStore.get(id)).filter(Boolean);
+          return makeListResult({ data: rows, error: null });
+        },
+      }),
+    };
+  }
   if (table !== "routes") {
     throw new Error(`Unexpected table in test mock: ${table}`);
   }
@@ -105,6 +124,7 @@ describe("Routes endpoints (FR-06, FR-07, FR-08, FR-09)", () => {
 
   beforeEach(() => {
     routesStore.clear();
+    dogsStore.clear();
     nextId = 1;
     mockGetUser.mockReset();
   });
@@ -128,8 +148,8 @@ describe("Routes endpoints (FR-06, FR-07, FR-08, FR-09)", () => {
 
     expect(res.status).toBe(201);
     expect(res.body.stops).toEqual([
-      { dogId: "dog-1", pickupTime: "2026-10-01T08:00:00.000Z" },
-      { dogId: "dog-2", pickupTime: "2026-10-01T08:15:00.000Z" },
+      { dogId: "dog-1", dogName: null, pickupTime: "2026-10-01T08:00:00.000Z" },
+      { dogId: "dog-2", dogName: null, pickupTime: "2026-10-01T08:15:00.000Z" },
     ]);
   });
 
@@ -166,6 +186,57 @@ describe("Routes endpoints (FR-06, FR-07, FR-08, FR-09)", () => {
       id: created.body.id,
       stops: [{ dogId: "dog-1", pickupTime: "2026-10-01T08:00:00.000Z" }],
     });
+  });
+
+  // Regression test (2026-09-24): a route's stops only ever carried dogId, never the dog's
+  // name, so apps/web's WalkerRouteScreen (which falls back to stop.dogId when dogName is
+  // missing) always showed the raw UUID instead of a name. Surfaced when Nico actually
+  // opened a route in the browser — no test exercised the real dog-name enrichment.
+  it("enriches each stop with the referenced dog's name", async () => {
+    dogsStore.set("dog-1", { id: "dog-1", name: "Firulais" });
+    dogsStore.set("dog-2", { id: "dog-2", name: "Rex" });
+
+    authAs(WALKER_A);
+    const created = await request(app.getHttpServer())
+      .post("/routes")
+      .set("Authorization", "Bearer token-a")
+      .send({
+        stops: [
+          { dogId: "dog-1", pickupTime: "2026-10-01T08:00:00.000Z" },
+          { dogId: "dog-2", pickupTime: "2026-10-01T08:15:00.000Z" },
+        ],
+      });
+
+    expect(created.body.stops).toEqual([
+      { dogId: "dog-1", dogName: "Firulais", pickupTime: "2026-10-01T08:00:00.000Z" },
+      { dogId: "dog-2", dogName: "Rex", pickupTime: "2026-10-01T08:15:00.000Z" },
+    ]);
+
+    const fetched = await request(app.getHttpServer())
+      .get(`/routes/${created.body.id}`)
+      .set("Authorization", "Bearer token-a");
+
+    expect(fetched.body.stops).toEqual(created.body.stops);
+
+    const listed = await request(app.getHttpServer())
+      .get("/routes")
+      .set("Authorization", "Bearer token-a");
+
+    expect(listed.body[0].stops).toEqual(created.body.stops);
+  });
+
+  it("falls back to null dogName for a stop whose dog no longer exists", async () => {
+    authAs(WALKER_A);
+    const created = await request(app.getHttpServer())
+      .post("/routes")
+      .set("Authorization", "Bearer token-a")
+      .send({
+        stops: [{ dogId: "deleted-dog", pickupTime: "2026-10-01T08:00:00.000Z" }],
+      });
+
+    expect(created.body.stops).toEqual([
+      { dogId: "deleted-dog", dogName: null, pickupTime: "2026-10-01T08:00:00.000Z" },
+    ]);
   });
 
   it("returns 404 fetching a route owned by someone else", async () => {
