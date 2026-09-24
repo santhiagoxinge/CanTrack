@@ -21,7 +21,7 @@ change is committed. Never check a box by hand — the runner does it.
 | T10 | Enroll photos + check-in match/undo endpoints | FR-05, FR-10, FR-11 | `tests/api/checkin.test.ts` | [x] |
 | T11 | Web: auth screens (signup/login/reset) | FR-01–03 | `tests/web/auth.test.tsx` | [x] |
 | T12 | Web: owner dogs list + photo enrollment (CLIP via transformers.js) | FR-04, FR-05 | `tests/web/owner-dogs.test.tsx` | [x] |
-| T13 | Web: walker route view + check-in camera flow | FR-06, FR-07, FR-10, FR-11 | `tests/web/walker-route.test.tsx` | [ ] |
+| T13 | Web: walker route view + check-in camera flow | FR-06, FR-07, FR-10, FR-11 | `tests/web/walker-route.test.tsx` | [x] |
 | T14 | Deploy: Render (api) + Vercel (web), wired to Supabase | — | manual, no test file | [ ] |
 
 ## Notes for whoever resumes this queue
