@@ -4,6 +4,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Inject,
   Param,
   Patch,
@@ -12,7 +14,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { SupabaseAuthGuard } from "../auth/supabase-auth.guard.js";
-import { CreateDogDto, UpdateDogDto } from "./dogs.dto.js";
+import { CreateDogDto, EmbeddingDto, UpdateDogDto } from "./dogs.dto.js";
 import { DogsService } from "./dogs.service.js";
 
 const PARAMTYPES_METADATA = "design:paramtypes";
@@ -59,6 +61,18 @@ export class DogsController {
     return this.dogsService.create(request.user.id, dto);
   }
 
+  enrollEmbedding(
+    request: AuthenticatedDogsRequest,
+    id: string,
+    dto: EmbeddingDto,
+  ) {
+    return this.dogsService.enrollEmbedding(
+      request.user.id,
+      id,
+      dto.embedding,
+    );
+  }
+
   findAll(request: AuthenticatedDogsRequest) {
     return this.dogsService.findAll(request.user.id);
   }
@@ -80,6 +94,16 @@ Controller("dogs")(DogsController);
 UseGuards(SupabaseAuthGuard)(DogsController);
 Get()(DogsController.prototype, "findAll", getMethodDescriptor("findAll"));
 Post()(DogsController.prototype, "create", getMethodDescriptor("create"));
+Post(":id/embedding")(
+  DogsController.prototype,
+  "enrollEmbedding",
+  getMethodDescriptor("enrollEmbedding"),
+);
+HttpCode(HttpStatus.OK)(
+  DogsController.prototype,
+  "enrollEmbedding",
+  getMethodDescriptor("enrollEmbedding"),
+);
 Patch(":id")(DogsController.prototype, "update", getMethodDescriptor("update"));
 Delete(":id")(
   DogsController.prototype,
@@ -89,6 +113,10 @@ Delete(":id")(
 Request()(DogsController.prototype, "create", 0);
 Body()(DogsController.prototype, "create", 1);
 setParameterTypes("create", [Object, CreateDogDto]);
+Request()(DogsController.prototype, "enrollEmbedding", 0);
+Param("id")(DogsController.prototype, "enrollEmbedding", 1);
+Body()(DogsController.prototype, "enrollEmbedding", 2);
+setParameterTypes("enrollEmbedding", [Object, String, EmbeddingDto]);
 Request()(DogsController.prototype, "findAll", 0);
 setParameterTypes("findAll", [Object]);
 Request()(DogsController.prototype, "update", 0);

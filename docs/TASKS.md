@@ -18,7 +18,7 @@ change is committed. Never check a box by hand — the runner does it.
 | T7 | API bootstrap: NestJS app, Supabase Auth guard, signup/login/reset endpoints | FR-01–03 | `tests/api/auth.test.ts` | [x] |
 | T8 | Dogs CRUD endpoints | FR-04 | `tests/api/dogs.test.ts` | [x] |
 | T9 | Routes endpoints (create/reorder/remove stop, next-pickup via AVL, path via Dijkstra) | FR-06–09 | `tests/api/routes.test.ts` | [x] |
-| T10 | Enroll photos + check-in match/undo endpoints | FR-05, FR-10, FR-11 | `tests/api/checkin.test.ts` | [ ] |
+| T10 | Enroll photos + check-in match/undo endpoints | FR-05, FR-10, FR-11 | `tests/api/checkin.test.ts` | [x] |
 | T11 | Web: auth screens (signup/login/reset) | FR-01–03 | `tests/web/auth.test.tsx` | [ ] |
 | T12 | Web: owner dogs list + photo enrollment (CLIP via transformers.js) | FR-04, FR-05 | `tests/web/owner-dogs.test.tsx` | [ ] |
 | T13 | Web: walker route view + check-in camera flow | FR-06, FR-07, FR-10, FR-11 | `tests/web/walker-route.test.tsx` | [ ] |

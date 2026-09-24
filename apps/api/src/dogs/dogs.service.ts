@@ -31,6 +31,25 @@ export class DogsService {
     return data;
   }
 
+  async enrollEmbedding(ownerId: string, id: string, embedding: number[]) {
+    const { data, error } = await this.supabase
+      .from("dogs")
+      .update({ embedding })
+      .eq("id", id)
+      .eq("owner_id", ownerId)
+      .select()
+      .single();
+
+    if (error !== null) {
+      throw new InternalServerErrorException(error.message);
+    }
+    if (data === null) {
+      throw new NotFoundException("Dog not found.");
+    }
+
+    return data;
+  }
+
   async findAll(ownerId: string) {
     const { data, error } = await this.supabase
       .from("dogs")

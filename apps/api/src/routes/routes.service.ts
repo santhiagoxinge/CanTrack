@@ -6,7 +6,13 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { AvlTree, SinglyLinkedList, WeightedGraph } from "@cantrack/structures";
+import {
+  AvlTree,
+  SinglyLinkedList,
+  Stack,
+  WeightedGraph,
+} from "@cantrack/structures";
+import { EmbeddingDto } from "../dogs/dogs.dto.js";
 import { SUPABASE_CLIENT } from "../supabase/supabase.constants.js";
 import {
   CreateRouteDto,
@@ -39,6 +45,61 @@ type NextPickup = {
   dogId: string;
   pickupTime: string;
 };
+
+type CheckinRouteStop = {
+  dogId?: string;
+  dog_id?: string;
+};
+
+type CheckinRoute = {
+  id: string;
+  walker_id: string;
+  stops: CheckinRouteStop[];
+};
+
+type RouteDog = {
+  id: string;
+  embedding: number[] | null;
+};
+
+type CheckinCandidate = {
+  dogId: string;
+  similarity: number;
+};
+
+type StoredCheckin = {
+  id: string;
+  route_id: string;
+  dog_id: string;
+  created_at: string;
+};
+
+const AUTO_CONFIRM_SIMILARITY = 0.8;
+
+function getStopDogId(stop: CheckinRouteStop): string | undefined {
+  return stop.dogId ?? stop.dog_id;
+}
+
+function cosineSimilarity(left: number[], right: number[]): number {
+  if (left.length === 0 || left.length !== right.length) {
+    return 0;
+  }
+
+  let dotProduct = 0;
+  let leftMagnitude = 0;
+  let rightMagnitude = 0;
+  for (let index = 0; index < left.length; index += 1) {
+    dotProduct += left[index] * right[index];
+    leftMagnitude += left[index] * left[index];
+    rightMagnitude += right[index] * right[index];
+  }
+
+  if (leftMagnitude === 0 || rightMagnitude === 0) {
+    return 0;
+  }
+
+  return dotProduct / Math.sqrt(leftMagnitude * rightMagnitude);
+}
 
 function toStoredStop(stop: RouteStop): StoredRouteStop {
   return {
@@ -118,6 +179,26 @@ export class RoutesService {
       throw new NotFoundException("Route not found.");
     }
     return route;
+  }
+
+  private async findOwnedCheckinRoute(
+    walkerId: string,
+    routeId: string,
+  ): Promise<CheckinRoute> {
+    const { data, error } = await this.supabase
+      .from("routes")
+      .select()
+      .eq("id", routeId)
+      .single();
+
+    if (error !== null) {
+      throw new InternalServerErrorException(error.message);
+    }
+    if (data === null || data.walker_id !== walkerId) {
+      throw new NotFoundException("Route not found.");
+    }
+
+    return data as CheckinRoute;
   }
 
   private async updateStops(
@@ -212,6 +293,106 @@ export class RoutesService {
       throw new NotFoundException("No scheduled pickups found.");
     }
     return tree.min().value;
+  }
+
+  async checkIn(walkerId: string, routeId: string, dto: EmbeddingDto) {
+    const route = await this.findOwnedCheckinRoute(walkerId, routeId);
+    const dogIds = [
+      ...new Set(
+        route.stops
+          .map(getStopDogId)
+          .filter((dogId): dogId is string => dogId !== undefined),
+      ),
+    ];
+
+    if (dogIds.length === 0) {
+      return { autoConfirmed: false as const, candidates: [] };
+    }
+
+    const { data, error } = await this.supabase
+      .from("dogs")
+      .select()
+      .in("id", dogIds);
+
+    if (error !== null) {
+      throw new InternalServerErrorException(error.message);
+    }
+
+    const candidates: CheckinCandidate[] = [];
+    for (const dog of (data ?? []) as RouteDog[]) {
+      if (dog.embedding === null) {
+        continue;
+      }
+      candidates.push({
+        dogId: dog.id,
+        similarity: cosineSimilarity(dto.embedding, dog.embedding),
+      });
+    }
+    candidates.sort((left, right) => right.similarity - left.similarity);
+
+    const bestCandidate = candidates[0];
+    if (
+      bestCandidate !== undefined &&
+      bestCandidate.similarity >= AUTO_CONFIRM_SIMILARITY
+    ) {
+      await this.persistCheckin(routeId, bestCandidate.dogId);
+      return {
+        dogId: bestCandidate.dogId,
+        autoConfirmed: true as const,
+      };
+    }
+
+    return { autoConfirmed: false as const, candidates };
+  }
+
+  private async persistCheckin(routeId: string, dogId: string) {
+    const { data, error } = await this.supabase
+      .from("checkins")
+      .insert({ route_id: routeId, dog_id: dogId })
+      .select()
+      .single();
+
+    if (error !== null) {
+      throw new InternalServerErrorException(error.message);
+    }
+    if (data === null) {
+      throw new InternalServerErrorException("Check-in creation returned no data.");
+    }
+
+    return data;
+  }
+
+  async undoCheckIn(walkerId: string, routeId: string) {
+    await this.findOwnedCheckinRoute(walkerId, routeId);
+    const { data, error } = await this.supabase
+      .from("checkins")
+      .select()
+      .eq("route_id", routeId)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    if (error !== null) {
+      throw new InternalServerErrorException(error.message);
+    }
+
+    const stack = new Stack<StoredCheckin>();
+    for (const checkin of (data ?? []) as StoredCheckin[]) {
+      stack.push(checkin);
+    }
+    if (stack.isEmpty()) {
+      throw new NotFoundException("No check-in found.");
+    }
+
+    const latest = stack.pop();
+    const deletion = await this.supabase
+      .from("checkins")
+      .delete()
+      .eq("id", latest.id);
+    if (deletion.error !== null) {
+      throw new InternalServerErrorException(deletion.error.message);
+    }
+
+    return { message: "Check-in undone." };
   }
 
   async computePath(dto: RoutePathDto) {

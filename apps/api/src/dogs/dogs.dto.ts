@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsOptional, IsString } from "class-validator";
+import {
+  ArrayNotEmpty,
+  IsArray,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from "class-validator";
 
 export class CreateDogDto {
   name!: string;
@@ -10,6 +17,10 @@ export class UpdateDogDto {
   name?: string;
   breed?: string;
   notes?: string;
+}
+
+export class EmbeddingDto {
+  embedding!: number[];
 }
 
 IsString()(CreateDogDto.prototype, "name");
@@ -25,3 +36,9 @@ IsOptional()(UpdateDogDto.prototype, "breed");
 IsString()(UpdateDogDto.prototype, "breed");
 IsOptional()(UpdateDogDto.prototype, "notes");
 IsString()(UpdateDogDto.prototype, "notes");
+IsArray()(EmbeddingDto.prototype, "embedding");
+ArrayNotEmpty()(EmbeddingDto.prototype, "embedding");
+IsNumber({ allowNaN: false, allowInfinity: false }, { each: true })(
+  EmbeddingDto.prototype,
+  "embedding",
+);
