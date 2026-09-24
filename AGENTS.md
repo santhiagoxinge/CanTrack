@@ -49,6 +49,15 @@ reverted before the next run — don't fight it, just don't do it.
 - `GET /routes/next-pickup` (FR-08) builds an `AvlTree<string, {routeId, dogId, pickupTime}>` from
   the walker's routes' stops, keyed by ISO pickup-time string, and returns `.min()`. No routes (or
   no stops) is a 404, not an empty 200.
+- CLIP embedding happens client-side (T12); the API only ever receives/compares numeric vectors.
+  `POST /dogs/:id/embedding` (FR-05) stores an embedding on a dog the caller owns (404 otherwise).
+  `POST /routes/:id/checkin` (FR-10) computes cosine similarity between the request's `embedding`
+  and every dog on that route (404 if the route isn't the caller's); above a similarity threshold,
+  respond `{dogId, autoConfirmed: true}` with 201; below it, respond `{autoConfirmed: false,
+  candidates: [{dogId, similarity}, ...]}` with 200 so the walker can pick manually — don't throw.
+  Persist the confirmed check-in either way. `DELETE /routes/:id/checkin/undo` (FR-11) pops the
+  most recent check-in on that route (a `Stack` popping the latest by timestamp is the natural
+  fit) and deletes it; 404 if there is none.
 
 ## Read first
 
