@@ -329,3 +329,64 @@ export class DoublyLinkedList<T> {
     return values;
   }
 }
+
+interface CircularListNode<T> {
+  value: T;
+  next: CircularListNode<T> | null;
+}
+
+/**
+ * Circular list for recurring route rotation (FR-13).
+ *
+ * Backing store: singly linked nodes with a first, tail, and current pointer.
+ *
+ * Big-O:
+ * - add: O(1)
+ * - current: O(1)
+ * - next: O(1)
+ * - size: O(1)
+ */
+export class CircularList<T> {
+  private head: CircularListNode<T> | null = null;
+  private tail: CircularListNode<T> | null = null;
+  private currentNode: CircularListNode<T> | null = null;
+  private count = 0;
+
+  size(): number {
+    return this.count;
+  }
+
+  add(value: T): void {
+    const node: CircularListNode<T> = { value, next: null };
+    if (this.tail === null) {
+      node.next = node;
+      this.head = node;
+      this.tail = node;
+      this.currentNode = node;
+    } else {
+      this.tail.next = node;
+      node.next = this.head;
+      this.tail = node;
+    }
+    this.count += 1;
+  }
+
+  current(): T {
+    if (this.currentNode === null) {
+      throw new Error("Cannot read the current item of an empty circular list.");
+    }
+    return this.currentNode.value;
+  }
+
+  next(): T {
+    if (this.currentNode === null) {
+      throw new Error("Cannot advance an empty circular list.");
+    }
+    const nextNode = this.currentNode.next;
+    if (nextNode === null) {
+      throw new Error("Cannot advance a circular list without a next item.");
+    }
+    this.currentNode = nextNode;
+    return nextNode.value;
+  }
+}
