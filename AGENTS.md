@@ -29,6 +29,17 @@ reverted before the next run — don't fight it, just don't do it.
 - `apps/web`: React 19 + Vite, PWA.
 - `packages/structures`: plain TypeScript, no runtime deps.
 
+## `apps/api` conventions the tests rely on
+
+- Export a `SUPABASE_CLIENT` DI token from `apps/api/src/supabase/supabase.constants.ts` and
+  provide the real `@supabase/supabase-js` client under that token in `AppModule`. Tests
+  override this provider with a mock — if you inline `createClient(...)` calls instead of
+  going through the token, tests can't substitute a fake and will hit a real network call.
+- Export `AppModule` from `apps/api/src/app.module.ts`.
+- Validate request bodies with `class-validator` DTOs; invalid input returns HTTP 400.
+- Supabase auth errors (e.g. duplicate signup, wrong password) surface as 4xx, not 500 — read
+  `error` on the Supabase response and translate it, don't let it throw uncaught.
+
 ## Read first
 
 `docs/REQUIREMENTS.md` for what the product must do, `docs/TASKS.md` for the current task queue and
