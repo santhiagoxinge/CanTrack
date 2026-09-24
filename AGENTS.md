@@ -29,6 +29,22 @@ reverted before the next run — don't fight it, just don't do it.
 - `apps/web`: React 19 + Vite, PWA.
 - `packages/structures`: plain TypeScript, no runtime deps.
 
+## `apps/web` conventions (T11+)
+
+- **Clean and functional first — no animation/motion work yet.** Plain forms, plain layout,
+  accessible labels. A polish/animation pass is a later, separate task; don't add it preemptively.
+- Export the real Supabase client from `apps/web/src/lib/supabase.ts` as `export const supabase`,
+  built from `import.meta.env.VITE_SUPABASE_URL` and `import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY`
+  (never the service-role key — that belongs only to `apps/api`). Tests mock this exact module
+  path, so screens must import `{ supabase }` from it, not construct their own client inline.
+- Every form input needs a real `<label>` associated to it (via `htmlFor`/`id` or wrapping) — tests
+  select fields with `getByLabelText`, not by placeholder or CSS.
+- Auth screens go in `apps/web/src/auth/AuthScreens.tsx`, exporting `SignupScreen`, `LoginScreen`,
+  `ResetPasswordScreen`. Signup needs a role choice between "walker" and "owner" (radio or two
+  labeled options, each reachable by `getByLabelText`). Show the Supabase `error.message` inline on
+  failure; don't let it throw uncaught. Reset-password shows a "check your email" confirmation on
+  success.
+
 ## `apps/api` conventions the tests rely on
 
 - Export a `SUPABASE_CLIENT` DI token from `apps/api/src/supabase/supabase.constants.ts` and
