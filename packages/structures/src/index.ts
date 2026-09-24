@@ -224,3 +224,108 @@ export class SinglyLinkedList<T> {
     return values;
   }
 }
+
+interface DoublyLinkedListNode<T> {
+  value: T;
+  previous: DoublyLinkedListNode<T> | null;
+  next: DoublyLinkedListNode<T> | null;
+}
+
+/**
+ * Doubly linked list for walk timeline events (FR-12).
+ *
+ * Big-O:
+ * - append: O(1)
+ * - prepend: O(1)
+ * - removeAt: O(n)
+ * - size: O(1)
+ * - toArray: O(n)
+ * - toArrayReverse: O(n)
+ */
+export class DoublyLinkedList<T> {
+  private head: DoublyLinkedListNode<T> | null = null;
+  private tail: DoublyLinkedListNode<T> | null = null;
+  private count = 0;
+
+  size(): number {
+    return this.count;
+  }
+
+  append(value: T): void {
+    const node: DoublyLinkedListNode<T> = {
+      value,
+      previous: this.tail,
+      next: null,
+    };
+    if (this.tail === null) {
+      this.head = node;
+    } else {
+      this.tail.next = node;
+    }
+    this.tail = node;
+    this.count += 1;
+  }
+
+  prepend(value: T): void {
+    const node: DoublyLinkedListNode<T> = {
+      value,
+      previous: null,
+      next: this.head,
+    };
+    if (this.head === null) {
+      this.tail = node;
+    } else {
+      this.head.previous = node;
+    }
+    this.head = node;
+    this.count += 1;
+  }
+
+  removeAt(index: number): void {
+    if (!Number.isInteger(index) || index < 0 || index >= this.count) {
+      throw new RangeError("Removal index is out of range.");
+    }
+
+    let current = this.head;
+    for (let position = 0; position < index; position += 1) {
+      current = current!.next;
+    }
+
+    if (current!.previous === null) {
+      this.head = current!.next;
+      if (this.head === null) {
+        this.tail = null;
+      } else {
+        this.head.previous = null;
+      }
+    } else {
+      current!.previous.next = current!.next;
+      if (current!.next === null) {
+        this.tail = current!.previous;
+      } else {
+        current!.next.previous = current!.previous;
+      }
+    }
+    this.count -= 1;
+  }
+
+  toArray(): T[] {
+    const values: T[] = [];
+    let current = this.head;
+    while (current !== null) {
+      values.push(current.value);
+      current = current.next;
+    }
+    return values;
+  }
+
+  toArrayReverse(): T[] {
+    const values: T[] = [];
+    let current = this.tail;
+    while (current !== null) {
+      values.push(current.value);
+      current = current.previous;
+    }
+    return values;
+  }
+}
