@@ -43,6 +43,12 @@ reverted before the next run — don't fight it, just don't do it.
   Supabase query by that user's id (`request.user.id` from `SupabaseAuthGuard`), and must return
   404 — not 403 — when the row belongs to someone else. Don't leak whether a resource exists to a
   non-owner.
+- `POST /routes/path` (FR-09) builds a `WeightedGraph` from the request body's `edges` array
+  in-memory per request — it does not persist a street graph in Supabase. An unreachable target
+  (`WeightedGraph.shortestPath` throwing) must surface as HTTP 400, not 500.
+- `GET /routes/next-pickup` (FR-08) builds an `AvlTree<string, {routeId, dogId, pickupTime}>` from
+  the walker's routes' stops, keyed by ISO pickup-time string, and returns `.min()`. No routes (or
+  no stops) is a 404, not an empty 200.
 
 ## Read first
 
