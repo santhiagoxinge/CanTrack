@@ -35,23 +35,39 @@ reverted before the next run — don't fight it, just don't do it.
   side effect of other work.** Visual direction below applies to the app shell (T11.5+) and any
   later dedicated polish task.
 
-### Visual direction (from T11.5 onward)
+### Visual direction (from T11.5 onward, revised 2026-09-24 after seeing the v1 pass)
 
-Reference: a schedule-management mobile app (Figma community, "Schedule Management Platform
-2019" by Ilia Utkin) — the shape to imitate, not to clone pixel-for-pixel:
-- **Vivid green** as the dominant background/brand color (a saturated grass/emerald green, not a
-  muted sage), with **white rounded cards floating on top** of it for content (dog list, route
-  stops, forms).
-- Generous corner radius (16-24px) on cards and buttons; soft drop shadows under floating cards,
-  not hard borders.
-- Small colorful accent tiles for categories (e.g. dog breed tags, walk status) — orange, purple,
-  teal — used sparingly against the white card backgrounds, not against the green.
-- A schedule/list pattern for anything chronological (routes, stops, walk timeline): each item is
-  its own card with a time or order indicator, name, and a short subtext line.
+**Primary reference: "NotePet – Pet Tracking UI" by Daniel Tan (Dribbble, shot 13920594).** This
+supersedes the earlier flat-green-everywhere brief — the v1 pass (solid green background, white
+card, plain form controls) read as generic/dashboard-y, not pet-app-specific. Match NotePet's
+*language*, not its literal pet-monitoring content:
+- **Per-context hero color, not one flat green everywhere.** NotePet uses a big colored card per
+  pet (mint for one, coral for another) with a large flat illustration and the name in oversized
+  type. In CanTrack: give each dog's card/detail view a hero color pulled from a small warm/pastel
+  palette (mint, coral/peach, soft yellow, sky blue) — rotate or hash-pick per dog — instead of
+  making every screen the same saturated green. Keep the green as ONE option in that palette and
+  as the brand accent (buttons, active states), not as the only background.
+- **Pill-shaped filter/segment tabs**: solid coral/accent-colored pill for the active option, plain
+  text for inactive ones, all in a single rounded track — this is the pattern for the existing
+  auth screen's Sign up/Log in/Reset switcher and any future filter row (dog list, route stops).
+- **List rows with a small circular icon chip on the left** (colored pastel circle, simple line
+  icon inside — e.g. a paw, a clock, a water drop), the label and a muted subtext line stacked
+  next to it, and often a trailing chevron. Use this for dog list items, route stop rows, and the
+  walk timeline instead of plain text rows.
+- **A row of circular colored icon buttons** for a small fixed set of quick actions/categories
+  (NotePet's "treats / shower / vaccine / meds" row) — same visual for anything CanTrack has a
+  short fixed list of (e.g. quick check-in states, dog attributes).
+- **Secondary reference for illustration tone: a "Pet Playlists" landing graphic** (flat,
+  friendly, slightly hand-drawn dog/cat/bird characters with big simple eyes, on a muted dusty-blue
+  background). Borrow the *warmth and personality* of that illustration style, not its layout —
+  where CanTrack shows a dog (dog list, dog detail, empty states), prefer a simple flat character
+  illustration or icon over a literal photo placeholder, in the same friendly/cartoonish register.
+- Soft pastel palette overall, generous corner radius (16-24px+), soft drop shadows, no hard
+  borders — keep this from the v1 direction.
 - Bottom tab/icon navigation for the primary app sections (dashboard, dogs/routes, profile) rather
-  than a top nav bar — this is a mobile-first PWA.
+  than a top nav bar — this is a mobile-first PWA. Keep this from v1.
 - Look at component.gallery, mobbin.com, and freefrontend.com for concrete component patterns
-  (cards, list items, bottom nav, empty states, form inputs) if a specific piece needs a reference;
+  (pill tabs, icon-chip list rows, circular icon buttons) if a specific piece needs a reference;
   browse the open web for more if those don't have what's needed.
 - **Clean and functional first — no animation/motion work yet** beyond ordinary CSS transitions
   (hover/press states, a fade/slide on screen change). Nothing requiring an animation library.
