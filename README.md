@@ -13,6 +13,9 @@ Final project for Estructuras de Datos, UCC 2026-2. TypeScript only, free tier e
 - **Pickup path** — shortest path over a street graph supplied per request.
 - **Check-in** — walker takes a photo at a stop; cosine similarity against the route's dogs auto-confirms above threshold, otherwise the walker picks from candidates. Undo pops the most recent check-in.
 
+<img width="2020" height="1575" alt="image" src="https://github.com/user-attachments/assets/57e532d4-15d9-40b5-9308-4198194cbc92" />
+
+
 ## Hand-written data structures
 
 `packages/structures` has zero runtime dependencies — every structure below is implemented from scratch, each with Big-O docstrings and its own unit tests.
