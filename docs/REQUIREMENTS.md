@@ -16,8 +16,8 @@ or `[Later]` (final delivery, 19 Nov). `[Oct5]` requirements are what `docs/TASK
 ### Dogs
 - **FR-04** `[Oct5]` An owner can create, read, update, and delete their own dogs (name, breed,
   notes).
-- **FR-05** `[Oct5]` An owner can enroll a dog with 3 reference photos. Each photo is embedded
-  (CLIP) and the embedding is stored against the dog.
+- **FR-05** `[Oct5]` An owner can enroll a dog with 3 reference photos. The API embeds each photo
+  (CLIP) and stores the mean embedding against the dog.
 
 ### Routes
 - **FR-06** `[Oct5]` A walker can create a route: an ordered sequence of stops, each stop tied to
@@ -29,9 +29,10 @@ or `[Later]` (final delivery, 19 Nov). `[Oct5]` requirements are what `docs/TASK
   with a hand-written **weighted graph + Dijkstra**.
 
 ### Check-in
-- **FR-10** `[Oct5]` At a stop, the walker takes a photo. The photo is embedded (CLIP) in the
-  browser and matched by cosine similarity against the dogs on that route. Above a similarity
-  threshold, the match auto-confirms; below it, the walker picks manually from that route's dogs.
+- **FR-10** `[Oct5]` At a stop, the walker takes a photo. The photo is uploaded to the API, embedded (CLIP) there and matched by cosine similarity against the dogs on that route. Above a similarity
+  threshold, the match auto-confirms; below it, the walker picks manually from that route's dogs. A vision model (Ollama) also checks
+  that a dog is actually in the photo and rejects the check-in when there is none; if the model is
+  unavailable the check-in still proceeds.
 - **FR-11** `[Oct5]` A walker can undo their most recent check-in, backed by a hand-written
   **stack**.
 
@@ -56,18 +57,18 @@ or `[Later]` (final delivery, 19 Nov). `[Oct5]` requirements are what `docs/TASK
 
 ## Non-functional requirements
 
-- **NFR-01** TypeScript only, frontend and backend.
+- **NFR-01** Backend in Python (FastAPI), frontend in TypeScript (React). Set by the professor in class on 2026-09-28.
 - **NFR-02** All identifiers, comments, docstrings, and error/log/UI strings are in English.
-- **NFR-03** `packages/structures` has zero runtime dependencies — every data structure listed
-  above is hand-written, not imported from a library.
+- **NFR-03** `apps/api-py/src/cantrack_api/structures` imports no data-structure library — every
+  data structure listed above is hand-written (only `typing`/`dataclasses` from the standard library).
 - **NFR-04** Every exported structure documents the Big-O of each operation it implements.
 - **NFR-05** Free tier only end to end: Vercel (frontend), Render (backend), Supabase (DB + auth +
-  realtime + pgvector), Groq (AI inference).
+  realtime + pgvector), Ollama Cloud (vision model); the CLIP image model runs inside the API.
 - **NFR-06** The system is deployed at a public URL for the code review.
 - **NFR-07** The database is cloud-hosted (Supabase Postgres), never local-only.
 - **NFR-08** Photo-to-dog check-in returns a match in under 3 seconds on a mid-range phone.
-- **NFR-09** All API input is validated (`class-validator`) before it reaches business logic.
-- **NFR-10** Secrets (Supabase keys, Groq key) live only in environment variables, never in
+- **NFR-09** All API input is validated (pydantic) before it reaches business logic.
+- **NFR-10** Secrets (Supabase keys, Ollama key) live only in environment variables, never in
   committed source.
 - **NFR-11** The web app is installable as a PWA.
 - **NFR-12** Each hand-written structure has its own unit tests, independent of the API/web tests.

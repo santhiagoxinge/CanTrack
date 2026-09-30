@@ -36,3 +36,23 @@ change is committed. Never check a box by hand — the runner does it.
   and flag it here before changing test files.
 - `[Later]` FRs (Union-Find, Quadtree, Interval Tree, Trie, voice-to-events, reports, dashboard,
   live GPS to owner) are not in this queue — they get their own TASKS entries after Oct 5.
+
+## Python backend port (decided 2026-09-30 after the 09-28 class: backend Python, frontend TypeScript)
+
+The NestJS API (T7-T10) and `packages/structures` (T1-T6) were rewritten in Python under `apps/api-py`.
+Tests are pytest (`tests/py/`), written before each task and red first; the builder wrote only `src/`.
+
+| # | Task | Test files | Done |
+|---|---|---|---|
+| P1 | The 7 structures in Python | `tests/py/structures/*` | [x] |
+| P2 | FastAPI app, Supabase auth endpoints, bearer guard | `tests/py/api/test_auth.py`, `test_app.py` | [x] |
+| P3 | Dogs CRUD | `tests/py/api/test_dogs.py` | [x] |
+| P4 | Routes: stops (linked list), next pickup (AVL), path (graph) | `tests/py/api/test_routes.py` | [x] |
+| P5a | AI layer: CLIP ONNX embedder, Ollama vision check | `tests/py/ai/*` | [x] |
+| P5b | Photo endpoints: enroll, check-in, confirm, undo (stack) | `tests/py/api/test_checkin.py` | [x] |
+| P5c | Multi-photo enrollment (mean embedding) | `tests/py/api/test_checkin.py` | [x] |
+| P6 | Web: upload photos to the API, no AI in the browser | `tests/web/*` | [ ] |
+| T14 | Deploy: Render (api-py) + Vercel (web), wired to Supabase | manual | [ ] |
+
+Verified end to end against the real Supabase, the real CLIP model and Ollama Cloud (`gemma4:31b`):
+enroll 1.1 s, check-in 2.6 s, photo without a dog rejected.
