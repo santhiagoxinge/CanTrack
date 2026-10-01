@@ -1,8 +1,48 @@
-# Rules for the builder model
+# Rules for the builder (Qwen)
 
-You are the **builder**. Nico and the human team write `docs/`, `tests/`, `tools/`, and this file.
-You write `apps/*/src/**` only (`apps/api-py/src/cantrack_api/**` and `apps/web/src/**`). Anything you touch outside those paths is
-reverted before the next run — don't fight it, just don't do it.
+You are the **builder**: you write the tests AND the code. Claude **reviews** every PR; Nico merges.
+Read first, in this order: this file, `docs/superpowers/specs/2026-09-30-cantrack-marketplace-design.md`
+(what to build, slice by slice), `docs/design/DESIGN.md` (how it looks), `docs/REQUIREMENTS.md`.
+
+## How you work (from 2026-09-30)
+
+One **slice** (S0..S5 in the spec) at a time, and two PRs per slice. Never push to `master`; branch from it.
+
+**PR 1 — tests only** (branch `sN-tests`). Touch only `tests/**`.
+- The tests are the spec. They must FAIL for the right reason (missing module/endpoint), not by a typo.
+  Paste the red summary (`pytest -q` / `pnpm exec vitest run` last lines) in the PR body.
+- Python: `tests/py/` with the in-memory fakes in `tests/py/api/fake_supabase.py` and `fake_ai.py`
+  (extend them, keep them strict: they enforce `.eq()` / `.in_()` filters). Web: `tests/web/`.
+- Do not wait for Claude to find holes: apply the checklist below before opening the PR.
+
+**PR 2 — implementation** (branch `sN-impl`, started after PR 1 is merged). Touch only
+`apps/api-py/src/**`, `apps/web/src/**`, `apps/web/public/art/**` (assets) and `apps/api-py/schema.sql`
+(new tables). You may NOT edit or delete any existing test in this PR; if a test looks wrong, say so in the PR.
+Paste the green output and `git diff --stat` in the PR body.
+
+Both PRs use `.github/pull_request_template.md`. One slice per PR pair, no drive-by refactors.
+
+### Test checklist (every item is mandatory; the five production bugs so far were all weak tests)
+
+1. Assert **exact values** (full JSON bodies, exact status codes, exact error strings), never "contains" or "length > 0".
+2. Every endpoint has: no token -> 401; invalid body -> 400 and nothing stored; someone else's row -> 404 and
+   nothing changed; database error -> 500.
+3. Isolation: a second user must be unable to read or change the first user's rows. The fake enforces filters, so a
+   forgotten `owner_id`/`walker_id` filter fails the test.
+4. Privacy gates have their own tests (e.g. the walker does NOT see address/allergies before accepting; owner photo
+   URLs are signed and expire; positions are visible only to the dog's owner).
+5. State machines: test every legal transition AND the illegal ones (e.g. `declined -> accepted` is rejected).
+6. Every hand-written structure used by a feature is asserted through behaviour (order of results, conflicts found).
+7. AI is always faked in tests, and failure of the AI must not block the flow (test it). Model output is untrusted.
+8. UI tests use labels and roles (`getByLabelText`, `getByRole`), assert the exact arguments passed to `api.ts`
+   functions, and every screen has a loading, an empty and an error state test.
+9. Never weaken a test to make it pass. Never edit `tests/web/architecture.test.ts`.
+10. Money/limits: quotas, 429 at the limit, and "the limit resets next month" are tested with a fake clock.
+
+### Review contract
+
+Claude checks: scope (diff only touches allowed paths), red-for-the-right-reason, checklist coverage, structure
+usage, privacy, and then runs both suites itself. A PR that fails any of these gets a list of required changes.
 
 ## Hard rules
 
@@ -19,8 +59,8 @@ reverted before the next run — don't fight it, just don't do it.
    test doesn't need.
 5. If a task depends on earlier code (e.g. the routers import `cantrack_api.structures`), import it,
    don't reimplement it.
-6. Don't touch `docs/`, `tests/`, `tools/`, or lockfiles. If a test looks wrong or contradicts the
-   requirements doc, say so in your output — don't silently work around it by weakening the test.
+6. Don't touch `docs/`, `tools/`, `.github/` or lockfiles (Nico and Claude own them). `tests/` only in a tests-only PR
+   (see above). If a test or doc looks wrong or contradicts the spec, say so in the PR — don't work around it.
 7. No stub/`NotImplementedError`/`TODO` placeholders to satisfy an import while claiming a task is
    done. If you can't finish a task, say what's missing.
 
