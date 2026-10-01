@@ -1,6 +1,7 @@
 # Rules for the builder (Qwen)
 
-You are the **builder**: you write the tests AND the code. Claude **reviews** every PR; Nico merges.
+You are the **builder**: you write the tests AND the code. Claude **reviews** every PR and **merges it (squash) once approved** (Nico delegated merging on 2026-10-01).
+Between PR 1 and PR 2 of a slice `master` is red on purpose (the new tests wait for the code); never "fix" that by editing tests.
 Read first, in this order: this file, `docs/superpowers/specs/2026-09-30-cantrack-marketplace-design.md`
 (what to build, slice by slice), `docs/design/DESIGN.md` (how it looks), `docs/REQUIREMENTS.md`.
 
