@@ -26,12 +26,18 @@ from .fake_ai import FakeEmbedder, FakeVision
 from .fake_supabase import FakeSupabase
 
 
-def make_user(user_id="user-1", email="walker@example.com", role="walker") -> User:
+def make_user(
+    user_id="user-1",
+    email="walker@example.com",
+    role="walker",
+    app_metadata=None,
+    user_metadata=None,
+) -> User:
     return User(
         id=user_id,
         email=email,
-        app_metadata={},
-        user_metadata={"role": role},
+        app_metadata=app_metadata if app_metadata is not None else {"role": role},
+        user_metadata=user_metadata if user_metadata is not None else {"role": role},
         aud="authenticated",
         created_at=datetime(2026, 9, 1, tzinfo=timezone.utc),
     )

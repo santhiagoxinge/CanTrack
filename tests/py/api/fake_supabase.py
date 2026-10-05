@@ -55,6 +55,7 @@ class FakeQuery:
         self._payload: Any = None
         self._filters: list[tuple[str, Any]] = []
         self._in_filters: list[tuple[str, list[Any]]] = []
+        self._range_filters: list[tuple[str, str, Any]] = []
         self._order: tuple[str, bool] | None = None
         self._limit: int | None = None
 
@@ -84,6 +85,22 @@ class FakeQuery:
         self._in_filters.append((column, list(values)))
         return self
 
+    def gte(self, column: str, value: Any) -> "FakeQuery":
+        self._range_filters.append(("gte", column, value))
+        return self
+
+    def gt(self, column: str, value: Any) -> "FakeQuery":
+        self._range_filters.append(("gt", column, value))
+        return self
+
+    def lte(self, column: str, value: Any) -> "FakeQuery":
+        self._range_filters.append(("lte", column, value))
+        return self
+
+    def lt(self, column: str, value: Any) -> "FakeQuery":
+        self._range_filters.append(("lt", column, value))
+        return self
+
     def order(self, column: str, desc: bool = False) -> "FakeQuery":
         self._order = (column, desc)
         return self
@@ -92,14 +109,37 @@ class FakeQuery:
         self._limit = count
         return self
 
+    def _matches_range(self, op: str, row_val: Any, filter_val: Any) -> bool:
+        if row_val is None:
+            return False
+        r_val = _normalize_utc_timestamp(row_val) if isinstance(row_val, str) else row_val
+        f_val = _normalize_utc_timestamp(filter_val) if isinstance(filter_val, str) else filter_val
+        if op == "gte":
+            return r_val >= f_val
+        elif op == "gt":
+            return r_val > f_val
+        elif op == "lte":
+            return r_val <= f_val
+        elif op == "lt":
+            return r_val < f_val
+        return True
+
     def _matches(self, row: dict[str, Any]) -> bool:
-        return all(str(row.get(col)) == str(val) for col, val in self._filters) and all(
-            str(row.get(col)) in {str(v) for v in values}
-            for col, values in self._in_filters
+        return (
+            all(str(row.get(col)) == str(val) for col, val in self._filters)
+            and all(
+                str(row.get(col)) in {str(v) for v in values}
+                for col, values in self._in_filters
+            )
+            and all(
+                self._matches_range(op, row.get(col), val)
+                for op, col, val in self._range_filters
+            )
         )
 
     def execute(self) -> SimpleNamespace:
         self._db.queries.append((self._table, self._op, list(self._filters)))
+        self._db.range_queries.append((self._table, self._op, list(self._filters), list(self._range_filters)))
         if self._db.fail_with is not None:
             error, self._db.fail_with = self._db.fail_with, None
             raise error
@@ -170,6 +210,19 @@ class FakeStorageBucket:
         url = f"https://supabase.example/signed/{self.id}/{path}?expires={expires_in}"
         return {"signedURL": url, "signedUrl": url}
 
+    def create_signed_urls(
+        self, paths: list[str], expires_in: int, options: Any = None
+    ) -> list[dict[str, Any]]:
+        self._store.calls.append((self.id, "batch_sign", list(paths), expires_in))
+        results: list[dict[str, Any]] = []
+        for path in paths:
+            if (self.id, path) not in self._store.objects:
+                results.append({"error": "Object not found", "path": path, "signedURL": None, "signedUrl": None})
+            else:
+                url = f"https://supabase.example/signed/{self.id}/{path}?expires={expires_in}"
+                results.append({"error": None, "path": path, "signedURL": url, "signedUrl": url})
+        return results
+
     def download(
         self, path: str, options: Any = None, query_params: Any = None
     ) -> bytes:
@@ -230,6 +283,7 @@ class FakeSupabase:
         self.storage = FakeStorage()
         self.tables: dict[str, list[dict[str, Any]]] = {}
         self.queries: list[tuple[str, str, list[tuple[str, Any]]]] = []
+        self.range_queries: list[tuple[str, str, list[tuple[str, Any]], list[tuple[str, str, Any]]]] = []
         self.fail_with: Exception | None = None
 
     def table(self, name: str) -> FakeQuery:
